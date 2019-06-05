@@ -14,13 +14,6 @@ class RabbitMq
     private $message        = null;
     public  $messageCount   = 0;
     public static $rabbitmq = null;
-    public static $rabbitmq1 = null;
-    public static $rabbitmq2 = null;
-    public static $rabbitmq3 = null;
-    public static $time1     = 0;
-    public static $time2     = 0;
-    public static $time3     = 0;
-    public static $hashKey   = '';
 
     public function __construct()
     {
@@ -29,119 +22,16 @@ class RabbitMq
             if (empty($rabbitmqConfig)) {
                 throw new \Exception('请检查RabbitMq的配置是否正确！');
             }
-            $nowTime = time();
-            $hashKey = $this->_getRabbitMqConnection($rabbitmqConfig);
-            if(self::$rabbitmq === null){
-                self::$rabbitmq1 = new \AMQPConnection($rabbitmqConfig['rabbitmq1']);   //创建连接
-                if (!self::$rabbitmq1->connect()) {
-                    throw new \Exception('RabbitMq1连接失败！');
-                }
-                self::$rabbitmq2 = new \AMQPConnection($rabbitmqConfig['rabbitmq2']);   //创建连接
-                if (!self::$rabbitmq2->connect()) {
-                    throw new \Exception('RabbitMq2连接失败！');
-                }
-                self::$rabbitmq3 = new \AMQPConnection($rabbitmqConfig['rabbitmq3']);   //创建连接
-                if (!self::$rabbitmq3->connect()) {
-                    throw new \Exception('RabbitMq3连接失败！');
-                }
-                self::$rabbitmq = self::$rabbitmq1;
-                self::$time1 = $nowTime;
-                self::$time2 = $nowTime;
-                self::$time3 = $nowTime;
-            }else{
-                if($hashKey === 'rabbitmq1'){
-                    $timeDifference = $nowTime-self::$time1;
-                    if($timeDifference>=50){
-                        self::$rabbitmq1->disconnect();
-                        self::$rabbitmq1 = new \AMQPConnection($rabbitmqConfig['rabbitmq1']);   //创建连接
-                        if (!self::$rabbitmq1->connect()) {
-                            throw new \Exception('RabbitMq1再次连接失败！');
-                        }
-                    }
-                    self::$rabbitmq = self::$rabbitmq1;
-                    self::$time1 = $nowTime;
-                }else if($hashKey === 'rabbitmq2'){
-                    $timeDifference = $nowTime-self::$time2;
-                    if($timeDifference>=50){
-                        self::$rabbitmq2->disconnect();
-                        self::$rabbitmq2 = new \AMQPConnection($rabbitmqConfig['rabbitmq2']);   //创建连接
-                        if (!self::$rabbitmq2->connect()) {
-                            throw new \Exception('RabbitMq2再次连接失败！');
-                        }
-                    }
-                    self::$rabbitmq = self::$rabbitmq2;
-                    self::$time2 = $nowTime;
-                }else if($hashKey === 'rabbitmq3'){
-                    $timeDifference = $nowTime-self::$time3;
-                    if($timeDifference>=50){
-                        self::$rabbitmq3->disconnect();
-                        self::$rabbitmq3 = new \AMQPConnection($rabbitmqConfig['rabbitmq3']);   //创建连接
-                        if (!self::$rabbitmq3->connect()) {
-                            throw new \Exception('RabbitMq3再次连接失败！');
-                        }
-                    }
-                    self::$rabbitmq = self::$rabbitmq3;
-                    self::$time3 = $nowTime;
-                }
+            self::$rabbitmq = new \AMQPConnection($rabbitmqConfig['rabbitmq1']);   //创建连接
+            if (!self::$rabbitmq->connect()) {
+                throw new \Exception('RabbitMq1连接失败！');
             }
             $this->channel = new \AMQPChannel(self::$rabbitmq);   //创建信道
         } catch (\Throwable $e) {
             $error = $e->getMessage();
-            if(stripos($error,'Library error: a socket error occurred') !== false || stripos($error,'Could not create channel. No connection available.') !== false){
-                Logger::write("{$hashKey}#{$error}",'rabbitMq.log');
-                if($hashKey === 'rabbitmq1'){
-                    self::$rabbitmq2->disconnect();
-                    self::$rabbitmq2 = new \AMQPConnection($rabbitmqConfig['rabbitmq2']);   //创建连接
-                    if (!self::$rabbitmq2->connect()) {
-                        throw new \Exception('RabbitMq2再1次连接失败！');
-                    }
-                    self::$rabbitmq = self::$rabbitmq2;
-                    self::$time2 = $nowTime;
-                }else if($hashKey === 'rabbitmq2'){
-                    self::$rabbitmq3->disconnect();
-                    self::$rabbitmq3 = new \AMQPConnection($rabbitmqConfig['rabbitmq3']);   //创建连接
-                    if (!self::$rabbitmq3->connect()) {
-                        throw new \Exception('RabbitMq3再1次连接失败！');
-                    }
-                    self::$rabbitmq = self::$rabbitmq3;
-                    self::$time3 = $nowTime;
-                }else if($hashKey === 'rabbitmq3'){
-                    self::$rabbitmq2->disconnect();
-                    self::$rabbitmq2 = new \AMQPConnection($rabbitmqConfig['rabbitmq2']);   //创建连接
-                    if (!self::$rabbitmq2->connect()) {
-                        throw new \Exception('RabbitMq2再1次连接失败！');
-                    }
-                    self::$rabbitmq = self::$rabbitmq2;
-                    self::$time2 = $nowTime;
-                }
-                $this->channel = new \AMQPChannel(self::$rabbitmq);   //创建信道
-            }else{
-                $error = "RabbitMq异常:{$error}" ;
-                throw new \Exception($error, 1);
-            }
+            $error = "RabbitMq异常:{$error}" ;
+            throw new \Exception($error, 1);
         }
-    }
-
-    /**
-     * 获取当前分配的MQ key
-     * @param array $rabbitMq
-     * @return string
-     */
-    private function _getRabbitMqConnection(array $rabbitMq):string
-    {
-        if(!empty($rabbitMq)){
-            $rabbitMq = array_keys($rabbitMq);
-            if(in_array(self::$hashKey,$rabbitMq)){
-                $key = array_search(self::$hashKey, $rabbitMq);
-                $key += 1;
-                $hashKey = isset($rabbitMq[$key]) ? $rabbitMq[$key] : current($rabbitMq);
-            }else{
-                $hashKey = current($rabbitMq);
-            }
-            self::$hashKey = $hashKey;
-        }
-
-        return isset($hashKey) ? $hashKey : '';
     }
 
     /**
