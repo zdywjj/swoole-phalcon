@@ -5,6 +5,7 @@ use \Phalcon\Mvc\Controller;
 use \Phalcon\Http\Response;
 use Phalcon\Http\Response\Headers;
 use Phalcon\DI;
+use Lib\Http\Request\File;
 
 class BaseController extends Controller
 {
@@ -50,5 +51,57 @@ class BaseController extends Controller
                 $value = $this->request->getPost($name,null,$defaultValue);
                 return $value;
         }
+    }
+
+    /**
+     * 获取上传的文件
+     * @return array
+     */
+    public function getUploadedFiles()
+    {
+        $superFiles = $_FILES;
+        $files = [];
+        if(count($superFiles)>0){
+            foreach($superFiles as $key=>$input){
+                if(count($input) == count($input, 1)){
+                    if($input['name'] !== ""){
+                        $inputKey = $key;
+                        $files[] = new File($input, $inputKey);
+                    }
+                }else{
+                    foreach($input as $k=>$file){
+                        if($file['name'] !== ""){
+                            $inputKey = "{$key}.{$k}";
+                            $files[] = new File($file, $inputKey);
+                        }
+                    }
+                }
+            }
+        }
+        return $files;
+    }
+
+    /**
+     * 判断是否有文件上传
+     * @return int
+     */
+    public function hasFiles():int
+    {
+        $numberFiles = 0;
+        $files = $_FILES;
+        foreach($files as $file){
+            if(count($file) == count($file, 1)){
+                if($file['name'] !== ""){
+                    $numberFiles++;
+                }
+            }else{
+                foreach($file as $f){
+                    if($f['name'] !== ""){
+                        $numberFiles++;
+                    }
+                }
+            }
+        }
+        return $numberFiles;
     }
 }
