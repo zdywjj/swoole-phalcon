@@ -13,5 +13,4 @@ if (!$client->connect($serverConfig['listener_host'], $serverConfig['listener_po
 }
 $client->send("reload");
 $client->recv();
-sleep(5);
 $client->close();
