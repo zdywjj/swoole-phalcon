@@ -12,9 +12,9 @@ class Adapter extends \Phalcon\Mvc\Model
     //当前数据库连接对象
     protected $_connect  = null;
     //数据库轮询redis key前缀
-    const WRITE_HASH_KEY = 'sjxshop_write_database_connection_';
-    const READ_HASH_KEY  = 'sjxshop_read_database_connection_';
-    const HASH_KEY       = 'sjxshop_database_connection_';
+    const WRITE_HASH_KEY = 'write_database_connection_';
+    const READ_HASH_KEY  = 'read_database_connection_';
+    const HASH_KEY       = 'database_connection_';
     /**
      * 数据库连接
      * @throws \Exception
